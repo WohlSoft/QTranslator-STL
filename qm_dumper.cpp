@@ -1,8 +1,55 @@
 #include <stdio.h>
 #include <string>
 #include <memory.h>
+#include <iostream>
 
-#include "qm_translator.h"
+#include "QTranslatorX/QTranslatorX"
+
+//Globally declared translator
+QmTranslatorX translator;
+
+/**
+ * @brief Example of fake qtTrId used for ID-based translations
+ * @param trSrc source string
+ * @return translated UTF8 string
+ */
+std::string qtTrId(const char* trSrc)
+{
+    std::string out = translator.do_translate8(0, trSrc, 0, -1);
+    if(out.empty())
+        return std::string(trSrc);
+    else
+        return out;
+}
+
+/**
+ * @brief Example of the class with TR function (to make context-based non-ID based translations)
+ */
+class Fake
+{
+    //Fake Q_OBJECT macro to avoid "Class 'Fake' lacks Q_OBJECT macro" spawned from lupdate utility
+    #define Q_OBJECT
+    Q_OBJECT
+    #undef Q_OBJECT
+
+public:
+    /**
+     * @brief Translating function of context-based translation.
+     * @param trSrc source string
+     * @return translated string
+     *
+     * Make own class which will contain tr(const char*) or tr(const char*, const char*=0) (wuth developer comments support) function\
+     * Output you can provide any: std::string, std::u16string, std::u32string or others like std::wstring and any others
+     */
+    static std::string tr(const char* trSrc, const char* /*Developer comment*/ = 0)
+    {
+        std::string out = translator.do_translate8("Fake", trSrc, 0, -1);
+        if(out.empty())
+            return std::string(trSrc);
+        else
+            return out;
+    }
+};
 
 int err(const char* errMsg, int code)
 {
@@ -10,43 +57,24 @@ int err(const char* errMsg, int code)
     return code;
 }
 
-void testPhraze(QmTranslatorX& tr, const char* phraze, FILE* out)
-{
-    std::u32string str32 = tr.do_translate32(0, phraze, 0, -1);
-    std::string    strU8 = tr.do_translate8(0, phraze, 0, -1);
-    printf("Small test: (length %d) {%s} \n", (int)str32.size(), strU8.c_str() );
-    fflush(stdout);
-    fprintf(out, "Small test: (length %d) {%s} \n", (int)str32.size(), strU8.c_str() );
-    fflush(out);
-}
-
 int main(int argc, char**argv)
 {
     if(argc<=1)
         return err("Missing argument! [must be path to file which need to dump]!", 1);
-    
-    QmTranslatorX tr;
-    if(!tr.loadFile(argv[1]))
+
+    if(!translator.loadFile(argv[1]))
         return err("Can't load translation!", 1);
 
-    FILE* out = fopen("result.txt", "w");
-    char bom[4] = "\xEF\xBB\xBF";
-    fwrite(bom, 1, 3, out);
 
-    testPhraze(tr, "ERROR_NO_OPEN_FILES_MSG", out);
-    testPhraze(tr, "CRASH_UNHEXC_MSG", out);
-    testPhraze(tr, "FUCKING SHIT", out); //<-- Example of non-existing string
-    testPhraze(tr, "MSGBOX_WARN", out);
-    testPhraze(tr, "LVL_ERROR_LVLCLOSED", out);
-    testPhraze(tr, "ERROR_LVL_UNKNOWN_PL_CHARACTER", out);
-    testPhraze(tr, "LVL_MENU_PAUSE_CONTINUESAVE", out);
-    testPhraze(tr, "MAINMENU_2_PLAYER_GAME", out);
-    testPhraze(tr, "TEST_TEXTINPUTBOX", out);
-    testPhraze(tr, "LVL_ERROR_NOSECTIONS", out);
+    std::cout << "Testing translations in work:\n";
 
-    fclose(out);
+                 //% "Just a some testing string"
+    std::cout << "test 1 (tr-ID): " << qtTrId("SomethingID1") << "\n";
+                 //% "Another testing string"
+    std::cout << "test 2 (tr-ID): " << qtTrId("SomethingID2") << "\n";
 
-    printf("Done!\n");
+    std::cout << "test 3 (\"Fake\" context): " << Fake::tr("Another testing string for some", "Please do accurate translation and never produce shit!") << "\n";
+    std::cout << "test 4 (\"Fake\" context): " << Fake::tr("What the heck you still try translate me?!", "Do you like jokes? Translate in Goblin style!") << "\n";
 
     return 0;
 }
