@@ -11,7 +11,7 @@ This implementation was created with using the code of original Qt-Translator wh
 However you can process translations update without using QMake-based project, just by manual specifying source to scan (files, directories, file lists, etc.) and targets to generate: `lupdate cpp1.cpp cpp2.cpp -ts cpp_en.ts cpp_ru.ts`. 
 More detail guide you can get by typing `lupdate --help`. Also possible to redefine names of translating functions!
 
-**Why license is GPL, not a MIT?** This implementation uses some of internal Qt code (qtbase/src/corelib/kernel/qtranslator.cpp) which licensed under GNU GPL license. 
+**Why license is LGPL, not a MIT?** This implementation uses some of internal Qt code (qtbase/src/corelib/kernel/qtranslator.cpp) which licensed under GNU LGPL license. 
 If you wish use this in proprietary projects, you have to buy commercial Qt license from Digia, or if you already have Qt license, feel free to use this class everywhere you want.
 
 # Main features
