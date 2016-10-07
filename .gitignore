@@ -36,5 +36,6 @@ Makefile*
 # QtCtreator CMake
 CMakeLists.txt.user
 
-/bin/qm_dumper
+/bin/qm_dumper*
+/bin/result.txt
 

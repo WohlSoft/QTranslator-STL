@@ -1,6 +1,7 @@
 CONFIG -= qt
 CONFIG += console
 CONFIG -= app_bundle
+CONFIG += c++11
 TEMPLATE = app
 
 TARGET = qm_dumper
