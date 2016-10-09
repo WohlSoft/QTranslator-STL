@@ -13,6 +13,7 @@ More detail guide you can get by typing `lupdate --help`. Also possible to redef
 
 **Why license is LGPL, not a MIT?** This implementation uses some of internal Qt code (qtbase/src/corelib/kernel/qtranslator.cpp) which licensed under GNU LGPL license. 
 If you wish use this in proprietary projects, you have to buy commercial Qt license from Digia, or if you already have Qt license, feel free to use this class everywhere you want.
+To use this code statically linked with the non-GPL projects, you must have commercial license from the Qt rightholder
 
 # Main features
 * It's tiny
