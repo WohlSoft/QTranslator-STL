@@ -78,7 +78,7 @@ static const uint8_t magic[MagicLength] =
 /* @} */
 
 #ifndef MACHINE_BYTEORDER
-#ifdef __linux__
+#if defined(__linux__) || defined(__HAIKU__)
 #include <endian.h>
 #define MACHINE_BYTEORDER  __BYTE_ORDER
 #else /* __linux__ */
@@ -385,19 +385,21 @@ static std::u16string getMessage(const uint8_t *m, const uint8_t *end, const cha
         uint8_t tag = 0;
         if(m < end)
             tag = read8(m++);
-        switch((Tag)tag)
+        switch(tag)
         {
         case Tag_End:
             goto end;
         case Tag_Translation:
         {
+            if((m + 4) >= end)
+                return std::u16string(u"<qm-error 0>");
             int32_t len = static_cast<int32_t>(read32be(m));
-            if(len % 1)
-                return std::u16string();
+            if(len % 2) //In the Qt here was a bug: byte lenght must be multiple two, but was %1
+                return std::u16string(u"<qm-error 1>");
             m += 4;
             if(!numerus--)
             {
-                tn_length = len;
+                tn_length = static_cast<uint32_t>(len);
                 tn = m;
             }
             m += len;
@@ -408,8 +410,12 @@ static std::u16string getMessage(const uint8_t *m, const uint8_t *end, const cha
             break;
         case Tag_SourceText:
         {
+            if((m + 4) >= end)
+                return std::u16string(u"<qm-error 2>");
             uint32_t len = read32be(m);
             m += 4;
+            if((m + len) >= end)
+                return std::u16string(u"<qm-error 3>");
             if(!match(m, len, sourceText, sourceTextLen))
             {
                 #ifdef QMTRANSLATPR_DEEP_DEBUG
@@ -422,8 +428,12 @@ static std::u16string getMessage(const uint8_t *m, const uint8_t *end, const cha
         break;
         case Tag_Context:
         {
+            if((m + 4) >= end)
+                return std::u16string(u"<qm-error 4>");
             uint32_t len = read32be(m);
             m += 4;
+            if((m + len) >= end)
+                return std::u16string(u"<qm-error 5>");
             if(!match(m, len, context, contextLen))
             {
                 #ifdef QMTRANSLATPR_DEEP_DEBUG
@@ -436,8 +446,12 @@ static std::u16string getMessage(const uint8_t *m, const uint8_t *end, const cha
         break;
         case Tag_Comment:
         {
+            if((m + 4) >= end)
+                return std::u16string(u"<qm-error 6>");
             uint32_t len = read32be(m);
             m += 4;
+            if((m + len) >= end)
+                return std::u16string(u"<qm-error 7>");
             if(*m && !match(m, len, comment, commentLen))
                 return std::u16string();
             m += len;
@@ -462,8 +476,8 @@ end:
     printf("-----> Almost got...!\n");
     #endif
 
-    UTF16   *utf16str = (UTF16 *)tn;
-    intptr_t utf16str_len = tn_length / 2;
+    UTF16   *utf16str = reinterpret_cast<UTF16 *>(const_cast<uchar*>(tn));
+    size_t  utf16str_len = tn_length / 2;
 
     #if MACHINE_BYTEORDER == MACHINE_LITTLE_ENDIAN
     std::u16string outStr(reinterpret_cast<char16_t *>(utf16str), utf16str_len);
@@ -634,12 +648,12 @@ std::string QmTranslatorX::do_translate8(const char *context, const char *source
     std::u16string str  = do_translate(context, sourceText, comment, n);
     size_t utf16len    = str.size();
     size_t utf8bytelen = str.size() * sizeof(char16_t) + 1;
-    char *utf8str = (char *)malloc(utf8bytelen);
+    char *utf8str = reinterpret_cast<char *>(malloc(utf8bytelen));
     memset(utf8str, 0, utf8bytelen);
     if(utf16len > 0)
     {
-        const UTF16 *pUtf16 = (const UTF16 *)str.data();
-        UTF8  *pUtf8  = (UTF8 *)utf8str;
+        const UTF16 *pUtf16 = reinterpret_cast<const UTF16 *>(str.data());
+        UTF8  *pUtf8  = reinterpret_cast<UTF8 *>(utf8str);
         ConvertUTF16toUTF8(&pUtf16, pUtf16 + utf16len,
                            &pUtf8,  pUtf8 + utf8bytelen, lenientConversion);
     }
@@ -654,12 +668,12 @@ std::u32string QmTranslatorX::do_translate32(const char *context, const char *so
     size_t utf16len = str.size();
     size_t utf32len = str.size() + 1;
     size_t utf32bytelen = utf32len * sizeof(char32_t);
-    char32_t *utf32str = (char32_t *)malloc(utf32bytelen);
+    char32_t *utf32str = reinterpret_cast<char32_t *>(malloc(utf32bytelen));
     memset(utf32str, 0, utf32bytelen);
     if(utf16len > 0)
     {
         const UTF16 *pUtf16 =  reinterpret_cast<const UTF16 *>(str.data());
-        UTF32 *pUtf32  = (UTF32 *)utf32str;
+        UTF32 *pUtf32  = reinterpret_cast<UTF32 *>(utf32str);
         ConvertUTF16toUTF32(&pUtf16, pUtf16 + utf16len,
                             &pUtf32, pUtf32 + utf32len, lenientConversion);
     }
@@ -703,10 +717,10 @@ bool QmTranslatorX::loadFile(const char *filePath, uint8_t *directory)
     }
 
     fseek(file, 0L, SEEK_END);
-    FileLength = ftell(file);
+    FileLength = static_cast<size_t>(ftell(file));
     fseek(file, 0L, SEEK_SET);
 
-    FileData = (uint8_t *)malloc(FileLength);
+    FileData = reinterpret_cast<uint8_t *>(malloc(FileLength));
     fileGotLen = fread(FileData, 1, FileLength, file);
     fclose(file);
     FileLength = fileGotLen;
@@ -774,8 +788,8 @@ bool QmTranslatorX::loadData(uint8_t *data, size_t len, uint8_t *directory)
                 uint8_t *begin = data;
                 while(*data != '\0')
                     data++;
-                std::string::size_type gotLen = (data - begin);
-                dep = std::string((char *)begin, gotLen);
+                std::string::size_type gotLen = std::string::size_type(data - begin);
+                dep = std::string(reinterpret_cast<char *>(begin), gotLen);
                 if(dep.size() > 0)
                 {
                     //List of dependent files
