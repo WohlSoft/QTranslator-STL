@@ -16,12 +16,10 @@ CONFIG += trtest
 DESTDIR = $$PWD/bin
 
 HEADERS += \
-    QTranslatorX/ConvertUTF.h \
     QTranslatorX/qm_translator.h
 
 SOURCES += \
     qm_dumper.cpp \
-    QTranslatorX/ConvertUTF.c \
     QTranslatorX/qm_translator.cpp
 
 # Resolve path to lrelease tool
@@ -50,3 +48,4 @@ win32: system(for /r $$shell_path($$PWD/bin) %B in (*.ts) do $$shell_path($$LREL
 TRANSLATIONS = \
     bin/testing_en.ts \
     bin/testing_ru.ts
+

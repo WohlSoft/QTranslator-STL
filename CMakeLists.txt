@@ -5,7 +5,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 set(SOURCE
             qm_dumper.cpp
-            QTranslatorX/ConvertUTF.c
             QTranslatorX/qm_translator.cpp )
 
 add_executable(QTranslatorX ${SOURCE})
